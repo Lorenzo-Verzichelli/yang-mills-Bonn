@@ -27,7 +27,7 @@ void real_main(char *in_file)
     char name[STD_STRING_LENGTH], aux[STD_STRING_LENGTH];
     int count;
     double acc, acc_local;
-    FILE *datafilep, *monofilep;
+    FILE *datafilep, *monofilep, *polyfilep;
     time_t time1, time2;
 
     // to disable nested parallelism
@@ -56,6 +56,22 @@ void real_main(char *in_file)
     // initialize gauge configuration
     init_gauge_conf(&GC, &geo, &param);
 
+    double complex *poly_vec;
+    int err = posix_memalign((void**) &poly_vec, DOUBLE_ALIGN, (size_t) geo.d_space_vol * sizeof(double complex));
+    double complex *polycorr;
+    if (err == 0) err = posix_memalign((void**) &polycorr, DOUBLE_ALIGN, (size_t) param.d_poly_corr * sizeof(double complex));
+
+    if (err != 0) {
+      fprintf(stderr, "Problems in allocating vectors, %s %d", __FILE__, __LINE__);
+      exit(EXIT_FAILURE);
+    }
+
+    polyfilep = fopen(param.d_poly_file, "a");
+    if (polyfilep == NULL) {
+      fprintf(stderr, "Problems in opening files, %s %d", __FILE__, __LINE__);
+      exit(EXIT_FAILURE);
+    }
+
     // acceptance of the metropolis update
     acc=0.0;
 
@@ -69,7 +85,19 @@ void real_main(char *in_file)
 
        if(count % param.d_measevery ==0 && count >= param.d_thermal)
          {
-         perform_measures_localobs_with_tracedef(&GC, &geo, &param, datafilep, monofilep);
+         alessio_localobs_tracedef(&GC, &geo, poly_vec, datafilep);
+
+         // TODO: put this in a function vvv
+         polyakov_corr(&geo, &param, poly_vec, polycorr);
+
+         double re_corrlen = 0, im_corrlen = 0;
+         polyakov_correlation_length(&geo, poly_vec, &re_corrlen, &im_corrlen);
+
+         fprintf(polyfilep, "%.ld %.12g %.12g ", GC.update_index, re_corrlen, im_corrlen);
+         for (int k = 0; k < param.d_poly_corr; k++) fprintf(polyfilep, "%.12g %.12g ", creal(polycorr[k]), cimag(polycorr[k]));
+         fprintf(polyfilep, "\n");
+         fflush(polyfilep);
+         //                              ^^^
          }
 
        // save configuration for backup
@@ -99,6 +127,10 @@ void real_main(char *in_file)
        }
     time(&time2);
     // montecarlo end
+
+    fclose(polyfilep);
+    free(polycorr);
+    free(poly_vec);
 
     acc/=(double)param.d_sample;
 
@@ -165,6 +197,7 @@ void print_template_input(void)
     fprintf(fp, "#output files\n");
     fprintf(fp, "conf_file  conf.dat\n");
     fprintf(fp, "data_file  dati.dat\n");
+    fprintf(fp, "poly_file  poly.dat\n");
     fprintf(fp, "mon_file   mon.dat\n");
     fprintf(fp, "log_file   log.dat\n");
     fprintf(fp, "\n");

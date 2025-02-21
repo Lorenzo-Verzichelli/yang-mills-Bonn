@@ -534,6 +534,46 @@ void polyvec(Gauge_Conf const * const GC,
 	  }
 }
 
+void alessio_localobs_tracedef(Gauge_Conf const * const GC, Geometry const * const geo,
+                               double complex * polyvec, FILE * datafilep)
+{
+   const int n_tr_def = floor(NCOLOR / 2);
+   double plaqs = 0, plaqt = 0, polyre = 0, polyim = 0, poly_sqr[n_tr_def];
+   for (int i = 0; i < n_tr_def; i++) poly_sqr[i] = 0;
+
+   plaquette(GC, geo, &plaqs, &plaqt);
+
+   GAUGE_GROUP matrix, poly;
+   for (long rsp = 0; rsp < geo->d_space_vol; rsp++) {
+      one(&matrix);
+      one(&poly);
+      for (int t = 0; t < geo->d_size[0]; t++) {
+         long r = sisp_and_t_to_si(geo, rsp, t);
+         times_equal(&poly, &(GC->lattice[r][0]));
+      }
+
+      polyvec[rsp] = retr(&poly) + I*imtr(&poly);
+      polyre += creal(polyvec[rsp]);
+      polyim += cimag(polyvec[rsp]);
+
+      for (int i = 0; i < n_tr_def; i++) {
+         times_equal(&matrix, &poly);
+         double real_tr = NCOLOR * retr(&matrix);
+         double imag_tr = NCOLOR * imtr(&matrix);
+
+         poly_sqr[i] += real_tr * real_tr + imag_tr * imag_tr;
+      }
+   }
+   polyre *= geo->d_inv_space_vol;
+   polyim *= geo->d_inv_space_vol;
+   for (int i = 0; i < n_tr_def; i++) poly_sqr[i] *= geo->d_inv_space_vol;
+
+   fprintf(datafilep, "%ld %.12g %.12g %.12g %.12g ", GC->update_index, plaqs, plaqt, polyre, polyim);
+   for (int i = 0; i < n_tr_def; i++) fprintf(datafilep, "%.12g ", poly_sqr[i]);
+   fprintf(datafilep, "\n");
+   fflush(datafilep);
+}
+
 // Polyakov loops in momentum space for a given value of spatial momentum \vec{p}
 void polyakov_FT(Geometry const * const geo,
                  double complex const * const polyvec,

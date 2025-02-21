@@ -201,6 +201,10 @@ void polyakov(Gauge_Conf const * const GC,
 void polyvec(Gauge_Conf const * const GC,
              Geometry const * const geo,
              double complex * polyvec);
+void alessio_localobs_tracedef(Gauge_Conf const * const GC,
+                               Geometry const * const geo,
+                               double complex * polyvec,
+                               FILE * datafilep);
 void polyakov_FT(Geometry const * const geo,
                  double complex const * const polyvec,
                  double complex * polyakov_FT,
