@@ -209,6 +209,10 @@ void polyakov_FT(Geometry const * const geo,
                  double complex const * const polyvec,
                  double complex * polyakov_FT,
                  double * spatial_momentum);
+void polyakov_corr_zeromin_mom(Geometry const * const geo,
+                               double complex const * const polyvec, 
+                               double * G_0,
+                               double * G_min);
 void polyakov_correlation_length(Geometry const * const geo,
               double complex const * const polyvec, 
               double * recorrlensq,

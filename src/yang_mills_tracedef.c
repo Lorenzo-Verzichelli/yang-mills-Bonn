@@ -90,10 +90,10 @@ void real_main(char *in_file)
          // TODO: put this in a function vvv
          polyakov_corr(&geo, &param, poly_vec, polycorr);
 
-         double re_corrlen = 0, im_corrlen = 0;
-         polyakov_correlation_length(&geo, poly_vec, &re_corrlen, &im_corrlen);
+         double poly_G_0 = 0, poly_G_min = 0;
+         polyakov_corr_zeromin_mom(&geo, poly_vec, &poly_G_0, &poly_G_min);
 
-         fprintf(polyfilep, "%.ld %.12g %.12g ", GC.update_index, re_corrlen, im_corrlen);
+         fprintf(polyfilep, "%.ld %.12g %.12g ", GC.update_index, poly_G_0, poly_G_min);
          for (int k = 0; k < param.d_poly_corr; k++) fprintf(polyfilep, "%.12g %.12g ", creal(polycorr[k]), cimag(polycorr[k]));
          fprintf(polyfilep, "\n");
          fflush(polyfilep);

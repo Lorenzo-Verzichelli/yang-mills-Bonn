@@ -611,6 +611,49 @@ void polyakov_FT(Geometry const * const geo,
    *(polyakov_FT) = polyakov_FT_tmp * geo->d_inv_space_vol / (STDIM-1);
 }
 
+// zero and minimal momentum polyakov loop correlator
+void polyakov_corr_zeromin_mom(Geometry const * const geo,
+                               double complex const * const polyvec, 
+                               double * G_0,
+                               double * G_min)
+{
+   int i;
+   double spatial_momentum_0[STDIM-1];
+   double spatial_momentum_min[STDIM-1];
+   double complex A_0, A_min;
+
+   for(i=0; i<STDIM-1;i++)
+   {
+      spatial_momentum_0[i] = 0.0;
+   }
+
+   polyakov_FT(geo, polyvec, &A_0, spatial_momentum_0);
+
+   *G_0 = creal(A_0) * creal(A_0) + cimag(A_0) * cimag(A_0);
+
+   *G_min = 0.0;
+   for(i=0; i<STDIM-1; i++)
+   {
+      int k;
+      double p_min;
+
+      p_min = PI2/(geo->d_size[i]);
+      for(k=0; k<STDIM-1; k++)
+      {
+         if(k==i)  
+            spatial_momentum_min[k] = p_min;
+         else
+            spatial_momentum_min[k] = 0.0;
+      }
+
+      polyakov_FT(geo, polyvec, &A_min, spatial_momentum_min);
+      *G_min += creal(A_min) * creal(A_min) + cimag(A_min) * cimag(A_min);
+   }
+
+   *G_min /= (double)(STDIM-1);
+}
+
+
 // second moment correlation length for Polyakov loops
 void polyakov_correlation_length(Geometry const * const geo,
               double complex const * const polyvec, 
